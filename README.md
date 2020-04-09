@@ -12,7 +12,7 @@ But remove focal loss convolution magic number and sigmoid clamp trick. Easier t
     
 ## Major Changes
 <pre>
-1. Turn ground truth to binary vlaues for focal loss. Very effective for dealing with positive and negtive samples inbalance issue. Experiments show that Gaussian Distribution center point still can be learned after this change.
+1. Turn ground truth to binary values for focal loss. Very effective for dealing with positive and negtive samples inbalance issue. Experiments show that Gaussian Distribution center point still can be learned after this change.
 2. Add draw_elipse_gaussian for adaptive width/height.
 3. Support unet framework, easy to add fpn and linknet which are supported by qubvel's framework.
 4. One decoder for center point, one decoder for box and offset prediction. These two decoders share one encoder.
