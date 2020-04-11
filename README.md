@@ -46,7 +46,6 @@ cd external; make
 ├── test2017
 ├── train2017
 ├── val2017
-└── val2017.zip
 </pre>
 
 ## Training
