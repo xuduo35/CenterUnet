@@ -94,7 +94,6 @@ def main():
       cfg.wh_weight *= 1.0
       cfg.off_weight *= 1.0
     else:
-      cfg.chm_weight *= 1.0
       cfg.hm_weight *= 1.0
       cfg.wh_weight *= 1.0
       cfg.off_weight *= 1.0
