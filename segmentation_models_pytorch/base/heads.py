@@ -1,6 +1,6 @@
 import torch.nn as nn
 from .modules import Flatten, Activation
-
+from models.py_utils import TopPool, BottomPool, LeftPool, RightPool
 
 class convolution(nn.Module):
     def __init__(self, k, inp_dim, out_dim, stride=1, with_bn=True):
@@ -17,6 +17,55 @@ class convolution(nn.Module):
         relu = self.relu(bn)
         return relu
 
+class pool_cross(nn.Module):
+    def __init__(self, dim, pool1, pool2, pool3, pool4):
+        super(pool_cross, self).__init__()
+        self.p1_conv1 = convolution(3, dim, 128)
+        self.p2_conv1 = convolution(3, dim, 128)
+
+        self.p_conv1 = nn.Conv2d(128, dim, (3, 3), padding=(1, 1), bias=False)
+        self.p_bn1   = nn.BatchNorm2d(dim)
+
+        self.conv1 = nn.Conv2d(dim, dim, (1, 1), bias=False)
+        self.bn1   = nn.BatchNorm2d(dim)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        self.conv2 = convolution(3, dim, dim)
+
+        self.pool1 = pool1()
+        self.pool2 = pool2()
+        self.pool3 = pool3()
+        self.pool4 = pool4()
+
+    def forward(self, x):
+        # pool 1
+        p1_conv1 = self.p1_conv1(x)
+        pool1    = self.pool1(p1_conv1)
+        pool1    = self.pool3(pool1)
+
+        # pool 2
+        p2_conv1 = self.p2_conv1(x)
+        pool2    = self.pool2(p2_conv1)
+        pool2    = self.pool4(pool2)
+
+        # pool 1 + pool 2
+        p_conv1 = self.p_conv1(pool1 + pool2)
+        p_bn1   = self.p_bn1(p_conv1)
+
+        conv1 = self.conv1(x)
+        bn1   = self.bn1(conv1)
+        relu1 = self.relu1(p_bn1 + bn1)
+
+        conv2 = self.conv2(relu1)
+        return conv2
+
+class center_pool(pool_cross):
+    def __init__(self, dim):
+        super(center_pool, self).__init__(dim, TopPool, LeftPool, BottomPool, RightPool)
+
+def make_ct_layer(dim):
+    return center_pool(dim)
+
 def make_layer(cnv_dim, curr_dim, out_dim):
     return nn.Sequential(
         convolution(3, cnv_dim, curr_dim, with_bn=False),
@@ -26,7 +75,10 @@ def make_layer(cnv_dim, curr_dim, out_dim):
 class SegmentationHead(nn.Sequential):
 
     def __init__(self, in_channels, out_channels, kernel_size=3, activation=None, upsampling=1):
-        head = make_layer(in_channels, 256, out_channels)
+        head = nn.Sequential(
+                make_ct_layer(in_channels),
+                make_layer(in_channels, 256, out_channels)
+                )
         super().__init__(head)
 
 class ClassificationHead(nn.Sequential):

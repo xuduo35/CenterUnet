@@ -131,3 +131,7 @@ dmypy.json
 save_models
 data
 results
+
+build
+cpools.egg-info
+dist

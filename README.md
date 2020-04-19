@@ -32,6 +32,7 @@ python3 -m pip install matplotlib
 python3 -m pip install progress
 python3 -m pip install numba
 cd external; make
+cd models/py_utils/_cpools/ python setup.py install --user
 </pre>
 
 ## Prepare data
@@ -66,6 +67,7 @@ Example for inferencing one image: python3 testimg.py --without_gpu --network_ty
 ## Most code from:
 <pre>
 https://github.com/xingyizhou/CenterNet
+https://github.com/Duankaiwen/CenterNet
 https://github.com/qubvel/segmentation_models.pytorch
 https://github.com/yxlijun/Pelee.Pytorch
 </pre>
