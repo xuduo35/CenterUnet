@@ -46,7 +46,7 @@ class COCO(data.Dataset):
     82, 84, 85, 86, 87, 88, 89, 90]
 
   '''
-  _valid_ids = __valid_ids
+  _valid_ids = all_valid_ids
   '''
   _valid_ids = [
     all_valid_ids[class_name.index('person')-1],

@@ -109,6 +109,12 @@ def test():
           args.network_type, args.backbone,
           down_ratio, nstack
           )
+
+  if False:
+    cfg.input_h = 384
+    cfg.input_w = 384
+    cfg.input_res = 384
+
   cfg.load_model = args.load_model
   cfg.nms = args.nms
   cfg.debug = 2
@@ -167,7 +173,7 @@ def test():
   allmaskjpg = np.zeros((h,w,3), dtype=np.uint8)
 
   i = 0
-  thr = 0.001
+  thr = 0.01
 
   for key in bbox_and_scores:
     for box in bbox_and_scores[key]:
@@ -176,6 +182,11 @@ def test():
         y1 = int(box[1]*scale)
         x2 = int(box[2]*scale)
         y2 = int(box[3]*scale)
+
+        x1 = 0 if x1 < 0 else x1
+        y1 = 0 if y1 < 0 else y1
+        x2 = w - 1 if x2 >= w else x2
+        y2 = h - 1 if y2 >= h else y2
 
         # deal with mask begin
         cls = key - 1
