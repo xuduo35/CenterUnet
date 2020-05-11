@@ -154,7 +154,9 @@ class Debugger(object):
 
   def add_coco_bbox(self, bbox, cat, conf=1, show_txt=True, img_id='default'): 
     bbox = np.array(bbox, dtype=np.int32)
-    cat = int(cat)+1
+    cat = int(cat)
+    cat = COCO._valid_ids[cat]
+    cat = COCO.all_valid_ids.index(cat)
     c = self.colors[cat][0][0].tolist()
     if self.theme == 'white':
       c = (255 - np.array(c)).tolist()

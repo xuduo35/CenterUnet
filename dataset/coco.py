@@ -35,7 +35,7 @@ class COCO(data.Dataset):
     'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
     'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 
-  __valid_ids = [
+  all_valid_ids = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
     14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
     24, 25, 27, 28, 31, 32, 33, 34, 35, 36,
@@ -49,17 +49,17 @@ class COCO(data.Dataset):
   _valid_ids = __valid_ids
   '''
   _valid_ids = [
-    __valid_ids[class_name.index('person')-1],
-    __valid_ids[class_name.index('bird')-1],
-    __valid_ids[class_name.index('cat')-1],
-    __valid_ids[class_name.index('dog')-1],
-    __valid_ids[class_name.index('horse')-1],
-    __valid_ids[class_name.index('sheep')-1],
-    __valid_ids[class_name.index('cow')-1],
-    __valid_ids[class_name.index('elephant')-1],
-    __valid_ids[class_name.index('bear')-1],
-    __valid_ids[class_name.index('zebra')-1],
-    __valid_ids[class_name.index('giraffe')-1]
+    all_valid_ids[class_name.index('person')-1],
+    all_valid_ids[class_name.index('bird')-1],
+    all_valid_ids[class_name.index('cat')-1],
+    all_valid_ids[class_name.index('dog')-1],
+    all_valid_ids[class_name.index('horse')-1],
+    all_valid_ids[class_name.index('sheep')-1],
+    all_valid_ids[class_name.index('cow')-1],
+    all_valid_ids[class_name.index('elephant')-1],
+    all_valid_ids[class_name.index('bear')-1],
+    all_valid_ids[class_name.index('zebra')-1],
+    all_valid_ids[class_name.index('giraffe')-1]
     ]
 
   cat_ids = {v: i for i, v in enumerate(_valid_ids)}

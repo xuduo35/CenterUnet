@@ -226,6 +226,7 @@ def test():
         # deal with mask begin
 
         cat = COCO._valid_ids[key-1]
+        cat = COCO.all_valid_ids.index(cat)+1
 
         print(x1, y1, x2, y2, COCO_NAMES[cat], box[4])
 
