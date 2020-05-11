@@ -16,6 +16,7 @@ But remove focal loss convolution magic number and sigmoid clamp trick. Easier t
 2. Add draw_elipse_gaussian for adaptive width/height.
 3. Support unet framework, easy to add fpn and linknet which are supported by qubvel's framework.
 4. One decoder for center point, one decoder for box and offset prediction. These two decoders share one encoder.
+5. Output instance mask using InstanceFCN method.
 </pre>
 
 ## Install
