@@ -10,7 +10,7 @@ import numpy as np
 from progress.bar import Bar
 from models.data_parallel import DataParallel
 
-from models.losses import FocalLoss
+from models.losses import FocalLoss, BCEDiceLoss
 from models.losses import RegL1Loss, RegLoss, NormRegL1Loss, RegWeightedL1Loss
 from models.decode import ctdet_decode
 from models.utils import _sigmoid
@@ -161,6 +161,8 @@ class CtdetLoss(torch.nn.Module):
     self.crit_wh = torch.nn.L1Loss(reduction='sum') if opt.dense_wh else \
               NormRegL1Loss() if opt.norm_wh else \
               RegWeightedL1Loss() if opt.cat_spec_wh else self.crit_reg
+    self.crit_allmask = BCEDiceLoss()
+
     self.opt = opt
 
     self.count = 0
@@ -169,7 +171,7 @@ class CtdetLoss(torch.nn.Module):
     eps = 1e-6
 
     opt = self.opt
-    hm_loss, wh_loss, off_loss = 0, 0, 0
+    hm_loss, wh_loss, off_loss, allmask_loss = 0, 0, 0, 0
 
     for s in range(opt.num_stacks):
       output = outputs[s]
@@ -201,7 +203,13 @@ class CtdetLoss(torch.nn.Module):
 
           cv2.imwrite("./results/center.jpg", (batch['hm'].detach().cpu().numpy()[0,0,:,:]*255).astype(np.uint8))
 
-      hm_loss += self.crit(output['hm'], (batch['hm']>0.).float()) / opt.num_stacks
+          allmask = output['allmask'][0,0:9,:,:].detach().cpu().numpy().transpose(1,2,0)
+
+          cv2.imwrite("./results/output_top.jpg", (allmask[:,:,0:3]*255).astype(np.uint8))
+          cv2.imwrite("./results/output_middle.jpg", (allmask[:,:,3:6]*255).astype(np.uint8))
+          cv2.imwrite("./results/output_bottom.jpg", (allmask[:,:,6:9]*255).astype(np.uint8))
+
+      hm_loss += self.crit(output['hm'], (batch['hm']>0.30).float()) / opt.num_stacks
 
       if opt.wh_weight > 0:
         if opt.dense_wh:
@@ -222,9 +230,16 @@ class CtdetLoss(torch.nn.Module):
       if opt.reg_offset and opt.off_weight > 0:
         off_loss += self.crit_reg(output['reg'], batch['reg_mask'],
                              batch['ind'], batch['reg']) / opt.num_stacks
+      '''
+      for i in range(0, output['allmask'].size()[1], 9):
+          allmask_loss += self.crit_allmask(output['allmask'][:,i:i+9,:,:], batch['allmask'][:,i:i+9,:,:]) / opt.num_stacks
+      '''
+      for i in range(0, output['allmask'].size()[1]):
+          allmask_loss += self.crit_allmask(output['allmask'][:,i,:,:], batch['allmask'][:,i,:,:]) / opt.num_stacks
+      #allmask_loss += self.crit_allmask(output['allmask'], batch['allmask']) / opt.num_stacks
 
-    loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + opt.off_weight * off_loss
-    loss_stats = {'loss': loss, 'hm_loss': hm_loss, 'wh_loss': wh_loss, 'off_loss': off_loss}
+    loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + opt.off_weight * off_loss + opt.allmask_weight*allmask_loss
+    loss_stats = {'loss': loss, 'hm_loss': hm_loss, 'wh_loss': wh_loss, 'off_loss': off_loss, 'allmask_loss': allmask_loss}
 
     return loss, loss_stats
 
@@ -233,7 +248,7 @@ class CtdetTrainer(BaseTrainer):
     super(CtdetTrainer, self).__init__(opt, model, optimizer=optimizer)
 
   def _get_losses(self, opt):
-    loss_states = ['loss', 'hm_loss', 'wh_loss', 'off_loss']
+    loss_states = ['loss', 'hm_loss', 'wh_loss', 'off_loss', 'allmask_loss']
     loss = CtdetLoss(opt)
     return loss_states, loss
 

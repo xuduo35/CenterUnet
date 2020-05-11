@@ -5,6 +5,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import cv2
+from dataset.coco import COCO
 
 class Debugger(object):
   def __init__(self, ipynb=False, theme='black', 
@@ -15,9 +16,7 @@ class Debugger(object):
       self.plt = plt
     self.imgs = {}
     self.theme = theme
-    colors = [(color_list[_]).astype(np.uint8) \
-            for _ in range(len(color_list))]
-    self.colors = np.array(colors, dtype=np.uint8).reshape(len(colors), 1, 1, 3)
+    self.colors = colors
     if self.theme == 'white':
       self.colors = self.colors.reshape(-1)[::-1].reshape(len(colors), 1, 1, 3)
       self.colors = np.clip(self.colors, 0., 0.6 * 255).astype(np.uint8)
@@ -155,9 +154,7 @@ class Debugger(object):
 
   def add_coco_bbox(self, bbox, cat, conf=1, show_txt=True, img_id='default'): 
     bbox = np.array(bbox, dtype=np.int32)
-    # cat = (int(cat) + 1) % 80
-    cat = int(cat)
-    # print('cat', cat, self.names[cat])
+    cat = int(cat)+1
     c = self.colors[cat][0][0].tolist()
     if self.theme == 'white':
       c = (255 - np.array(c)).tolist()
@@ -261,6 +258,7 @@ class Debugger(object):
     self.imgs[img_id] = img.copy()
     if type(dets) == type({}):
       for cat in dets:
+        cat = int(cat)+1
         for i in range(len(dets[cat])):
           if dets[cat][i, 2] > center_thresh:
             cl = (self.colors[cat, 0, 0]).tolist()
@@ -407,3 +405,5 @@ color_list = np.array(
         ]
     ).astype(np.float32)
 color_list = color_list.reshape((-1, 3)) * 255
+colors = [(color_list[_]).astype(np.uint8) for _ in range(len(color_list))]
+colors = np.array(colors, dtype=np.uint8).reshape(len(colors), 1, 1, 3)

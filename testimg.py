@@ -17,6 +17,7 @@ from config import Config
 from dataset.coco import COCO
 from models.network import create_model, load_model, save_model
 from detector import CtdetDetector as Detector
+from utils.debugger import colors
 
 COCO_NAMES = ['__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
               'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
@@ -74,6 +75,12 @@ def get_args():
     print(args)
     return args
 
+def cleanmask(m0, m1, m2, m3):
+    return (m0 * ((m0-m1)>0.))
+
+def assignroi(pagenum, dst, src, x1, y1, x2, y2):
+  dst[y1:y2, x1:x2] += src[y1:y2, x1:x2, pagenum]
+
 def test():
   args = get_args()
 
@@ -123,12 +130,6 @@ def test():
   # imgs[0,:,:,:] = torch.FloatTensor(img.transpose(2,0,1))
   # imgs = imgs.to(cfg.device)
 
-  detector = Detector(cfg, args.output_dir)
-
-  ret = detector.run(args.image)
-
-  bbox_and_scores = ret['results']
-
   img = cv2.imread(args.image)
   h, w, _ = img.shape
   scale = 512/w
@@ -136,19 +137,104 @@ def test():
   h = int(h*scale)
   img = cv2.resize(img, (w,h))
 
+  detector = Detector(cfg, args.output_dir)
+
+  ret = detector.run(args.image)
+
+  bbox_and_scores = ret['results']
+
+  inp_height = ret['meta']['inp_height']
+  inp_width = ret['meta']['inp_width']
+  new_height = ret['meta']['new_height']
+  new_width = ret['meta']['new_width']
+  trans_inv = ret['meta']['trans_inv']
+
+  heatmap = ret['heatmap']
+  heatmap = cv2.resize(heatmap, (inp_width,inp_height))
+  heatmap = cv2.warpAffine(heatmap, trans_inv, (new_width, new_height), flags=cv2.INTER_LINEAR)
+  cv2.imwrite("./results/heatmap.jpg", heatmap)
+
+  allmasktmp = ret['allmask']
+  allmask = np.zeros((h,w,allmasktmp.shape[2]), dtype=np.float32)
+
+  for i in range(0, allmask.shape[2]):
+    allmaskpg = allmasktmp[:,:,i]
+
+    allmaskpg = cv2.resize(allmaskpg, (inp_width,inp_height))
+    allmaskpg = cv2.warpAffine(allmaskpg, trans_inv, (new_width, new_height), flags=cv2.INTER_LINEAR)
+    allmask[:,:,i] = cv2.resize(allmaskpg, (w,h))
+
+  allmaskjpg = np.zeros((h,w,3), dtype=np.uint8)
+
+  i = 0
+  thr = 0.001
+
   for key in bbox_and_scores:
-  #  if key == 1:
-      for box in bbox_and_scores[key]:
-        if box[4] > cfg.center_thresh:
-          x1 = int(box[0]*scale)
-          y1 = int(box[1]*scale)
-          x2 = int(box[2]*scale)
-          y2 = int(box[3]*scale)
-          print(x1, y1, x2, y2, COCO_NAMES[key], box[4])
-          cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-          cv2.putText(img, COCO_NAMES[key], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (key*2, 255, 255-key), 2)
+    for box in bbox_and_scores[key]:
+      if box[4] > cfg.center_thresh:
+        x1 = int(box[0]*scale)
+        y1 = int(box[1]*scale)
+        x2 = int(box[2]*scale)
+        y2 = int(box[3]*scale)
+
+        # deal with mask begin
+        cls = key - 1
+
+        centerx = (x1+x2)//2
+        centery = (y1+y2)//2
+
+        # clsbase = cls*9
+        clsbase = 0
+
+        allmaskroi = allmask[y1:y2, x1:x2, :]
+        roi_h, roi_w, _ = allmaskroi.shape
+
+        if roi_h < 6 or roi_w < 6:
+          continue
+
+        roi_cx = roi_w//2
+        roi_cy = roi_h//2
+        cell_w = (roi_w+5)//6
+        cell_h = (roi_h+5)//6
+
+        roi = np.zeros((roi_h,roi_w), dtype=np.float32)
+
+        # TOP
+        assignroi(0, roi, allmaskroi, 0,             0,             roi_cx-cell_w, roi_cy-cell_h)
+        assignroi(1, roi, allmaskroi, roi_cx-cell_w, 0,             roi_cx+cell_w, roi_cy-cell_h)
+        assignroi(2, roi, allmaskroi, roi_cx+cell_w, 0,             -1,            roi_cy-cell_h)
+
+        # MIDDLE
+        assignroi(3, roi, allmaskroi, 0,             roi_cy-cell_h, roi_cx-cell_w, roi_cy+cell_h)
+        assignroi(4, roi, allmaskroi, roi_cx-cell_w, roi_cy-cell_h, roi_cx+cell_w, roi_cy+cell_h)
+        assignroi(5, roi, allmaskroi, roi_cx+cell_w, roi_cy-cell_h, -1,            roi_cy+cell_h)
+
+        # BOTTOM
+        assignroi(6, roi, allmaskroi, 0,             roi_cy+cell_h, roi_cx-cell_w, -1)
+        assignroi(7, roi, allmaskroi, roi_cx-cell_w, roi_cy+cell_h, roi_cx+cell_w, -1)
+        assignroi(8, roi, allmaskroi, roi_cx+cell_w, roi_cy+cell_h, -1,            -1)
+
+        # roi = np.amax(allmaskroi[:,:,:], axis=2)
+        roi = (roi > thr).astype(np.uint8)
+
+        rgb = colors[i,0,0].tolist()
+        i += 1
+
+        allmaskjpg[:,:,0][y1:y2,x1:x2] += roi*rgb[0]
+        allmaskjpg[:,:,1][y1:y2,x1:x2] += roi*rgb[1]
+        allmaskjpg[:,:,2][y1:y2,x1:x2] += roi*rgb[2]
+        # deal with mask begin
+
+        cat = COCO._valid_ids[key-1]
+
+        print(x1, y1, x2, y2, COCO_NAMES[cat], box[4])
+
+        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(img, COCO_NAMES[cat], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (cat*2, 255, 255-cat), 2)
 
   cv2.imwrite(os.path.join(args.output_dir, "centernet.jpg"), img)
+  cv2.imwrite("./results/pred_rawmask.jpg", (np.amax(allmask, axis=2)>thr).astype(np.uint8)*255)
+  cv2.imwrite("./results/pred_allmask.png", allmaskjpg)
 
 if __name__ == '__main__':
   test()

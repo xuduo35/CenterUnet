@@ -13,7 +13,7 @@ def create_model(name, backbone, heads, num_stacks=2, num_classes=80, encoder_we
   if name == 'large_hourglass':
     model = HourglassNet(heads, num_stacks)
   elif name =='unetobj':
-    model = UnetObj(backbone, heads, num_stacks, num_classes, encoder_weights)
+    model = UnetObj(backbone, heads, num_stacks, num_classes, encoder_weights=encoder_weights)
 
   return model
 

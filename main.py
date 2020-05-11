@@ -86,28 +86,31 @@ def main():
 
   if args.network_type != 'large_hourglass':
     if args.train_phase == 'pre_train_center':
+      cfg.allmask_weight *= 0.1
       cfg.hm_weight *= 1.0
       cfg.wh_weight *= 0.1
       cfg.off_weight *= 0.1
     elif args.train_phase == 'pre_train_box':
-      cfg.hm_weight *= 0.01
+      cfg.allmask_weight *= 1.0
+      cfg.hm_weight *= 0.1
       cfg.wh_weight *= 1.0
       cfg.off_weight *= 1.0
     else:
       cfg.hm_weight *= 1.0
       cfg.wh_weight *= 1.0
       cfg.off_weight *= 1.0
-
-    if args.convert_model:
-        model = create_model(cfg.network_type, args.backbone, {'hm': 80, 'wh': 2, 'reg': 2}, cfg.num_stacks, encoder_weights=None)
-        model, optimizer, start_epoch = load_model(model, cfg.load_model, True, resume=True)
-        save_model(cfg.load_model.replace(".pth", "_"+cfg.network_type+".pth"), start_epoch, model)
-        sys.exit(0)
+      cfg.allmask_weight *= 1.0
 
   logger = Logger(cfg)
 
   cfg.update(COCO)
   dataset = COCO('train', cfg)
+
+  if args.convert_model:
+      model = create_model(cfg.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses*9}, cfg.num_stacks, encoder_weights=None)
+      model, optimizer, start_epoch = load_model(model, cfg.load_model, True, resume=True)
+      save_model(cfg.load_model.replace(".pth", "_"+cfg.network_type+".pth"), start_epoch, model)
+      sys.exit(0)
 
   if args.verbose:
       dataset.verbose()
@@ -115,7 +118,7 @@ def main():
 
   print('Creating model...')
 
-  model = create_model(args.network_type, args.backbone, {'hm': 80, 'wh': 2, 'reg': 2}, nstack, COCO.num_classes)
+  model = create_model(args.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses*9}, nstack)
 
   if args.network_type != 'large_hourglass':
     if args.train_phase == 'pre_train_center':

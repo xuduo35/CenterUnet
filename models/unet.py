@@ -108,6 +108,10 @@ class boxDecoder(nn.Module):
         ind = 0 # nstack is 1
 
         for head in self.heads:
+            #if 'hm' in head or 'allmask' in head:
+            if 'hm' in head:
+                continue
+
             layer = self.__getattr__(head)[ind]
             y = layer(boxdecode)
 
@@ -119,16 +123,15 @@ class UnetObj(nn.Module):
     def __init__(
         self,
         backbone = 'densenet169',
-        heads = {'hm': 80, 'wh': 2, 'reg': 2},
+        heads = {'allmask': 80*4, 'hm': 80, 'wh': 2, 'reg': 2},
         nstack = 1,
-        num_classes = 80,
         in_channels = 3,
         decoder_channels = (256, 128, 64, 32, 16),
         encoder_weights = 'imagenet'
     ):
         super().__init__()
 
-        assert(heads['hm'] == num_classes)
+        num_classes = heads['hm']
 
         if backbone == 'peleenet':
             decoder_channels = (64,32,16,8)
@@ -138,10 +141,9 @@ class UnetObj(nn.Module):
 
         ## keypoint heatmaps
         for head in heads.keys():
-          if 'hm' not in head:
             self.heads[head] = heads[head]
 
-        self.c_net = get_basenet(self.basenet, backbone, encoder_weights, 80, decoder_channels)
+        self.c_net = get_basenet(self.basenet, backbone, encoder_weights, 0, decoder_channels)
         self.b_net = boxDecoder(
             self.basenet, self.heads, nstack, 256, self.c_net.encoder.out_channels, decoder_channels, 3+num_classes
             )
@@ -171,14 +173,21 @@ class UnetObj(nn.Module):
         # raw result
         c_net_output = self.c_net(input)
 
+        hm = self.b_net.__getattr__('hm')[0]
+        #allmask = self.b_net.__getattr__('allmask')[0]
+
         # concat
-        csigmoid = F.sigmoid(c_net_output)
+        csigmoid = F.sigmoid(hm(c_net_output))
         csigmoidx2 = F.interpolate(csigmoid, (input.size()[2], input.size()[3]), mode='bilinear')
         b_net_input = torch.cat((input, csigmoidx2), 1)
 
-        out = { 'hm': csigmoid }
+        out = {
+            'hm': csigmoid,
+            #'allmask': F.sigmoid(allmask(c_net_output))
+            }
 
         # second stage
         out = self.b_net(self.c_net, b_net_input, out)
+        out['allmask'] = F.sigmoid(out['allmask'])
 
         return [out]

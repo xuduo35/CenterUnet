@@ -6,7 +6,8 @@ class SegmentationModel(torch.nn.Module):
 
     def initialize(self):
         init.initialize_decoder(self.decoder)
-        init.initialize_head(self.segmentation_head)
+        if self.segmentation_head is not None:
+            init.initialize_head(self.segmentation_head)
         if self.classification_head is not None:
             init.initialize_head(self.classification_head)
 
@@ -14,6 +15,9 @@ class SegmentationModel(torch.nn.Module):
         """Sequentially pass `x` trough model`s encoder, decoder and heads"""
         features = self.encoder(x)
         decoder_output = self.decoder(*features)
+
+        if self.segmentation_head is None:
+            return decoder_output
 
         masks = self.segmentation_head(decoder_output)
 

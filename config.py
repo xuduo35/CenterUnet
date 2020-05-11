@@ -25,7 +25,7 @@ class Config():
 
     self.pad = 32
 
-    self.input_h = 256 
+    self.input_h = 256
     self.input_w = 256
     self.input_res = 256
 
@@ -63,6 +63,7 @@ class Config():
     self.task = 'ctdet'
     self.dataset = 'coco'
 
+    self.allmask_weight = 1.0
     self.hm_weight = 1.0
     self.wh_weight = 1.0
     self.off_weight = 1.0
@@ -90,6 +91,7 @@ class Config():
     input_h, input_w = dataset.default_resolution
     self.mean, self.std = dataset.mean, dataset.std
     self.num_classes = dataset.num_classes
+    self.num_maskclasses = dataset.num_maskclasses
 
     # input_h(w): self.input_h overrides self.input_res overrides dataset default
     input_h = self.input_res if self.input_res > 0 else input_h

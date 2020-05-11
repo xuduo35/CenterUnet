@@ -86,6 +86,7 @@ class UnetDecoder(nn.Module):
 
         # computing blocks input and output channels
         head_channels = encoder_channels[0]
+
         in_channels = [head_channels] + list(decoder_channels[:-1])
         skip_channels = list(encoder_channels[1:]) + [0]
         out_channels = decoder_channels

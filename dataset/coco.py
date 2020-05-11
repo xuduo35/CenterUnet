@@ -20,61 +20,84 @@ import pycocotools.coco as coco
 from pycocotools.cocoeval import COCOeval
 
 class COCO(data.Dataset):
-  num_classes = 80
+  class_name = [
+    '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
+    'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
+    'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse',
+    'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
+    'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis',
+    'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
+    'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass',
+    'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich',
+    'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+    'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv',
+    'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave',
+    'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
+    'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+
+  __valid_ids = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
+    14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+    24, 25, 27, 28, 31, 32, 33, 34, 35, 36,
+    37, 38, 39, 40, 41, 42, 43, 44, 46, 47,
+    48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+    58, 59, 60, 61, 62, 63, 64, 65, 67, 70,
+    72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
+    82, 84, 85, 86, 87, 88, 89, 90]
+
+  '''
+  _valid_ids = __valid_ids
+  '''
+  _valid_ids = [
+    __valid_ids[class_name.index('person')-1],
+    __valid_ids[class_name.index('bird')-1],
+    __valid_ids[class_name.index('cat')-1],
+    __valid_ids[class_name.index('dog')-1],
+    __valid_ids[class_name.index('horse')-1],
+    __valid_ids[class_name.index('sheep')-1],
+    __valid_ids[class_name.index('cow')-1],
+    __valid_ids[class_name.index('elephant')-1],
+    __valid_ids[class_name.index('bear')-1],
+    __valid_ids[class_name.index('zebra')-1],
+    __valid_ids[class_name.index('giraffe')-1]
+    ]
+
+  cat_ids = {v: i for i, v in enumerate(_valid_ids)}
+
+  num_classes = len(_valid_ids)
+  num_maskclasses = 1
+
   default_resolution = [512, 512]
   mean = np.array([0.40789654, 0.44719302, 0.47026115],
                    dtype=np.float32).reshape(1, 1, 3)
-  std  = np.array([0.28863828, 0.27408164, 0.27809835],
+  std = np.array([0.28863828, 0.27408164, 0.27809835],
                    dtype=np.float32).reshape(1, 1, 3)
+
+  _data_rng = np.random.RandomState(123)
+  _eig_val = np.array([0.2141788, 0.01817699, 0.00341571],
+                           dtype=np.float32)
+  _eig_vec = np.array([
+      [-0.58752847, -0.69563484, 0.41340352],
+      [-0.5832747, 0.00994535, -0.81221408],
+      [-0.56089297, 0.71832671, 0.41158938]
+  ], dtype=np.float32)
 
   def __init__(self, split, opt):
     super(COCO, self).__init__()
 
     self.data_dir = os.path.join(opt.data_dir, 'coco')
 
+    # self.img_dir = os.path.join(self.data_dir, '{}2017'.format(split))
+    # self.annot_path = os.path.join(
+    #     self.data_dir, 'annotations', 'instances_{}2017.json'
+    #     ).format(split)
+
     self.img_dir = os.path.join(self.data_dir, '{}2017'.format(split))
     self.annot_path = os.path.join(
-        self.data_dir, 'annotations', 'instances_{}2017.json'
-        ).format(split)
+        self.data_dir, 'annotations',
+        'instances_{}2017.json').format(split)
 
     self.max_objs = 128
-    self.class_name = [
-      '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
-      'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
-      'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse',
-      'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
-      'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis',
-      'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove',
-      'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass',
-      'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich',
-      'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
-      'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv',
-      'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave',
-      'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase',
-      'scissors', 'teddy bear', 'hair drier', 'toothbrush']
-    self._valid_ids = [
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13,
-      14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-      24, 25, 27, 28, 31, 32, 33, 34, 35, 36,
-      37, 38, 39, 40, 41, 42, 43, 44, 46, 47,
-      48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-      58, 59, 60, 61, 62, 63, 64, 65, 67, 70,
-      72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
-      82, 84, 85, 86, 87, 88, 89, 90]
-    self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
-    self.voc_color = [(v // 32 * 64 + 64, (v // 8) % 4 * 64, v % 8 * 32) \
-                      for v in range(1, self.num_classes + 1)]
-    self._data_rng = np.random.RandomState(123)
-    self._eig_val = np.array([0.2141788, 0.01817699, 0.00341571],
-                             dtype=np.float32)
-    self._eig_vec = np.array([
-        [-0.58752847, -0.69563484, 0.41340352],
-        [-0.5832747, 0.00994535, -0.81221408],
-        [-0.56089297, 0.71832671, 0.41158938]
-    ], dtype=np.float32)
-    # self.mean = np.array([0.485, 0.456, 0.406], np.float32).reshape(1, 1, 3)
-    # self.std = np.array([0.229, 0.224, 0.225], np.float32).reshape(1, 1, 3)
-
     self.split = split
     self.opt = opt
 
@@ -98,6 +121,9 @@ class COCO(data.Dataset):
     while size - border // i <= border // i:
         i *= 2
     return border // i
+
+  def assignroi(self, pagenum, dst, src, x1, y1, x2, y2):
+    dst[y1:y2, x1:x2, pagenum] = src[y1:y2, x1:x2]
 
   def __getitem__(self, index):
     img_id = self.images[index]
@@ -176,9 +202,15 @@ class COCO(data.Dataset):
 
     gt_det = []
 
+    allmask = np.zeros((output_h, output_w, 9*self.num_maskclasses), dtype=np.float32)
+
     for k in range(num_objs):
       ann = anns[k]
       bbox = self._coco_box_to_bbox(ann['bbox'])
+
+      if ann['category_id'] not in self._valid_ids:
+        continue
+
       cls_id = int(self.cat_ids[ann['category_id']])
 
       if flipped:
@@ -189,9 +221,56 @@ class COCO(data.Dataset):
       bbox[[0, 2]] = np.clip(bbox[[0, 2]], 0, output_w - 1)
       bbox[[1, 3]] = np.clip(bbox[[1, 3]], 0, output_h - 1)
 
+      x1 = int(bbox[0])
+      y1 = int(bbox[1])
+      x2 = int(bbox[2])
+      y2 = int(bbox[3])
+
       h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
 
       if h > 0 and w > 0:
+        ### gen mask begin ###
+        # clsbase = cls_id*9
+        clsbase = 0*9
+        mask = self.coco.annToMask(ann)
+
+        if flipped:
+          mask = mask[:, ::-1]
+
+        mask = cv2.warpAffine(mask, trans_output, (output_w, output_h), flags=cv2.INTER_LINEAR)
+
+        roi = mask[y1:y2, x1:x2]
+        roi_h, roi_w = roi.shape
+
+        if roi_h < 6 or roi_w < 6:
+          continue
+
+        roi_cx = roi_w//2
+        roi_cy = roi_h//2
+        cell_w = (roi_w+5)//6
+        cell_h = (roi_h+5)//6
+
+        allmaskroi = allmask[y1:y2, x1:x2, :]
+
+        ww = max(6,cell_w//4)
+        hh = max(6,cell_h//4)
+
+        # TOP
+        self.assignroi(0, allmaskroi, roi, 0,                0,                roi_cx-cell_w+ww, roi_cy-cell_h+hh)
+        self.assignroi(1, allmaskroi, roi, roi_cx-cell_w-ww, 0,                roi_cx+cell_w+ww, roi_cy-cell_h+hh)
+        self.assignroi(2, allmaskroi, roi, roi_cx+cell_w-ww, 0,                -1,               roi_cy-cell_h+hh)
+
+        # MIDDLE
+        self.assignroi(3, allmaskroi, roi, 0,                roi_cy-cell_h-hh, roi_cx-cell_w+ww, roi_cy+cell_h+hh)
+        self.assignroi(4, allmaskroi, roi, roi_cx-cell_w-ww, roi_cy-cell_h-hh, roi_cx+cell_w+ww, roi_cy+cell_h+hh)
+        self.assignroi(5, allmaskroi, roi, roi_cx+cell_w-ww, roi_cy-cell_h-hh, -1,               roi_cy+cell_h+hh)
+
+        # BOTTOM
+        self.assignroi(6, allmaskroi, roi, 0,                roi_cy+cell_h-hh, roi_cx-cell_w+ww, -1              )
+        self.assignroi(7, allmaskroi, roi, roi_cx-cell_w-ww, roi_cy+cell_h-hh, roi_cx+cell_w+ww, -1              )
+        self.assignroi(8, allmaskroi, roi, roi_cx+cell_w-ww, roi_cy+cell_h-hh, -1,               -1              )
+        ### gen mask end ###
+
         radius = gaussian_radius((math.ceil(h), math.ceil(w)))
         radius = max(0, int(radius))
 
@@ -219,8 +298,19 @@ class COCO(data.Dataset):
           draw_dense_reg(dense_wh, hm.max(axis=0), ct_int, wh[k], radius)
 
         gt_det.append([ct[0] - w / 2, ct[1] - h / 2, ct[0] + w / 2, ct[1] + h / 2, 1, cls_id])
-    #cv2.imwrite("./results/hehe.jpg", ( hm.max(axis=0).squeeze()*255).astype(np.uint8))
-    ret = {'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh}
+
+    #cv2.imwrite("./results/hehe.jpg", (hm.max(axis=0).squeeze()*255).astype(np.uint8))
+
+    if index % 30 == 0:
+      cv2.imwrite("./results/top.jpg", (allmask[:,:,0:3]*255).astype(np.uint8))
+      cv2.imwrite("./results/middle.jpg", (allmask[:,:,3:6]*255).astype(np.uint8))
+      cv2.imwrite("./results/bottom.jpg", (allmask[:,:,6:9]*255).astype(np.uint8))
+      cv2.imwrite("./results/full.jpg", (((allmask[:,:,0:3]+allmask[:,:,3:6]+allmask[:,:,6:9]) > 0)*255).astype(np.uint8))
+
+    ret = {
+      'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh,
+      'allmask': allmask.transpose(2, 0, 1)
+    }
 
     if self.opt.dense_wh:
       hm_a = hm.max(axis=0, keepdims=True)
@@ -243,6 +333,10 @@ class COCO(data.Dataset):
 
       meta = {'c': c, 's': s, 'gt_det': gt_det, 'img_id': img_id}
       ret['meta'] = meta
+
+    # img = cv2.warpAffine(img, trans_output, (output_w, output_h), flags=cv2.INTER_LINEAR)
+    # img = img*allmask[:,:,:3]
+    # cv2.imwrite("./results/maskit.jpg", img)
 
     return ret
 
@@ -269,6 +363,10 @@ class COCO(data.Dataset):
         for j in range(0, num_objs):
             ann = anns[j]
             bbox = self._coco_box_to_bbox(ann['bbox'])
+
+            if ann['category_id'] not in self._valid_ids:
+              continue
+
             cls_id = int(self.cat_ids[ann['category_id']])
 
             h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
@@ -294,8 +392,6 @@ class COCO(data.Dataset):
             y1 = bbox[1]
             x2 = bbox[2]
             y2 = bbox[3]
-
-            #print(cls_id, h*w)
 
             name = self.class_name[cls_id+1]
 

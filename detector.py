@@ -10,8 +10,6 @@ import time
 import torch
 
 from models.network import create_model, load_model
-from utils.image import get_affine_transform
-from utils.debugger import Debugger
 
 try:
   from external.nms import soft_nms
@@ -23,6 +21,8 @@ from models.utils import flip_tensor
 from utils.image import get_affine_transform
 from utils.post_process import ctdet_post_process
 from utils.debugger import Debugger
+
+from dataset.coco import COCO
 
 class BaseDetector(object):
   def __init__(self, opt, output_dir):
@@ -36,7 +36,7 @@ class BaseDetector(object):
     print('Creating model...')
     self.model = create_model(
             opt.network_type, opt.backbone,
-            {'hm': 80, 'wh': 2, 'reg': 2}, opt.num_stacks,
+            {'hm': opt.num_classes, 'wh': 2, 'reg': 2, 'allmask': opt.num_maskclasses*9}, opt.num_stacks,
             encoder_weights=None
             )
     self.model = load_model(self.model, opt.load_model)
@@ -74,9 +74,16 @@ class BaseDetector(object):
 
     images = inp_image.transpose(2, 0, 1).reshape(1, 3, inp_height, inp_width)
     images = torch.from_numpy(images)
-    meta = {'c': c, 's': s,
+    meta = {
+            'c': c, 's': s,
+            'inp_height': inp_height,
+            'inp_width': inp_width,
+            'new_height': new_height,
+            'new_width': new_width,
             'out_height': inp_height // self.opt.down_ratio,
-            'out_width': inp_width // self.opt.down_ratio}
+            'out_width': inp_width // self.opt.down_ratio,
+            'trans_inv': cv2.invertAffineTransform(trans_input)
+            }
     return images, meta
 
   def process(self, images, return_time=False):
@@ -164,9 +171,18 @@ class BaseDetector(object):
     #if self.opt.debug >= 1:
     #  self.show_results(debugger, image, results)
 
-    return {'results': results, 'tot': tot_time, 'load': load_time,
+    allmask = output['allmask'][0].detach().cpu().numpy().transpose(1,2,0)
+
+    heatmap = output['hm'][0].detach().cpu().numpy().transpose(1,2,0)
+    heatmap = np.amax(heatmap, axis=2)
+    heatmap = (heatmap*255).astype(np.uint8)
+
+    return {
+            'results': results, 'meta': meta, 'allmask': allmask, 'heatmap': heatmap,
+            'tot': tot_time, 'load': load_time,
             'pre': pre_time, 'net': net_time, 'dec': dec_time,
-            'post': post_time, 'merge': merge_time}
+            'post': post_time, 'merge': merge_time
+            }
 
 class CtdetDetector(BaseDetector):
   def __init__(self, opt, output_dir):
@@ -233,7 +249,7 @@ class CtdetDetector(BaseDetector):
       pos = np.unravel_index(np.argmax(heatmaps), heatmaps.shape)
       print("max of heatmaps", heatmaps.max(), heatmaps.shape, pos, heatmaps[pos[0],pos[1]])
       heatmaps = (heatmaps*255).astype(np.uint8)
-      cv2.imwrite("./results/"+'pred_hm_{:.1f}'.format(scale)+".png", heatmaps)
+      # cv2.imwrite("./results/"+'pred_hm_{:.1f}'.format(scale)+".png", heatmaps)
       debugger.add_blend_img(img, heatmaps, 'pred_hm_{:.1f}'.format(scale))
       #####
       debugger.add_img(img, img_id='out_pred_{:.1f}'.format(scale))

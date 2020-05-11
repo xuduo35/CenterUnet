@@ -72,12 +72,15 @@ class Unet(SegmentationModel):
             attention_type=decoder_attention_type,
         )
 
-        self.segmentation_head = SegmentationHead(
-            in_channels=decoder_channels[-1],
-            out_channels=classes,
-            activation=activation,
-            kernel_size=3,
-        )
+        if classes == 0:
+            self.segmentation_head = None
+        else:
+            self.segmentation_head = SegmentationHead(
+                in_channels=decoder_channels[-1],
+                out_channels=classes,
+                activation=activation,
+                kernel_size=3,
+            )
 
         if aux_params is not None:
             self.classification_head = ClassificationHead(
