@@ -17,6 +17,7 @@ But remove focal loss convolution magic number and sigmoid clamp trick. Easier t
 3. Support unet framework, easy to add fpn and linknet which are supported by qubvel's framework.
 4. One decoder for center point, one decoder for box and offset prediction. These two decoders share one encoder.
 5. Output instance mask using InstanceFCN method.
+6. Add instance box area size level as label. Total 6 classes, but every size has two adjacent size level labels.
 </pre>
 
 ## Install
