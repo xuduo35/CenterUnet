@@ -15,6 +15,7 @@ from utils.image import flip, color_aug
 from utils.image import get_affine_transform, affine_transform
 from utils.image import gaussian_radius, draw_umich_gaussian, draw_elipse_gaussian, draw_msra_gaussian
 from utils.image import draw_dense_reg
+from utils.image import size2level, levelnum
 
 import pycocotools.coco as coco
 from pycocotools.cocoeval import COCOeval
@@ -65,7 +66,6 @@ class COCO(data.Dataset):
   cat_ids = {v: i for i, v in enumerate(_valid_ids)}
 
   num_classes = len(_valid_ids)
-  num_maskclasses = 1
 
   default_resolution = [512, 512]
   mean = np.array([0.40789654, 0.44719302, 0.47026115],
@@ -202,7 +202,7 @@ class COCO(data.Dataset):
 
     gt_det = []
 
-    allmask = np.zeros((output_h, output_w, 9*self.num_maskclasses), dtype=np.float32)
+    allmask = np.zeros((output_h, output_w, self.opt.num_maskclasses+levelnum), dtype=np.float32)
 
     for k in range(num_objs):
       ann = anns[k]
@@ -244,6 +244,10 @@ class COCO(data.Dataset):
 
         if roi_h < 6 or roi_w < 6:
           continue
+
+        l = size2level(output_w*output_h, roi_w*roi_h)
+        allmask[:,:,self.opt.num_maskclasses+l] += mask
+        allmask[:,:,self.opt.num_maskclasses+l+1] += mask
 
         roi_cx = roi_w//2
         roi_cy = roi_h//2
@@ -306,6 +310,8 @@ class COCO(data.Dataset):
       cv2.imwrite("./results/middle.jpg", (allmask[:,:,3:6]*255).astype(np.uint8))
       cv2.imwrite("./results/bottom.jpg", (allmask[:,:,6:9]*255).astype(np.uint8))
       cv2.imwrite("./results/full.jpg", (((allmask[:,:,0:3]+allmask[:,:,3:6]+allmask[:,:,6:9]) > 0)*255).astype(np.uint8))
+      cv2.imwrite("./results/large.jpg", (((allmask[:,:,9:12]) > 0)*255).astype(np.uint8))
+      cv2.imwrite("./results/small.jpg", (((allmask[:,:,12:15]) > 0)*255).astype(np.uint8))
 
     ret = {
       'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh,

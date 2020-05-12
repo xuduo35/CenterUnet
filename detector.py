@@ -22,6 +22,8 @@ from utils.image import get_affine_transform
 from utils.post_process import ctdet_post_process
 from utils.debugger import Debugger
 
+from utils.image import size2level, levelnum
+
 from dataset.coco import COCO
 
 class BaseDetector(object):
@@ -36,7 +38,7 @@ class BaseDetector(object):
     print('Creating model...')
     self.model = create_model(
             opt.network_type, opt.backbone,
-            {'hm': opt.num_classes, 'wh': 2, 'reg': 2, 'allmask': opt.num_maskclasses*9}, opt.num_stacks,
+            {'hm': opt.num_classes, 'wh': 2, 'reg': 2, 'allmask': opt.num_maskclasses+levelnum}, opt.num_stacks,
             encoder_weights=None
             )
     self.model = load_model(self.model, opt.load_model)

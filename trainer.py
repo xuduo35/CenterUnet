@@ -20,6 +20,8 @@ from utils.post_process import ctdet_post_process
 from utils.oracle_utils import gen_oracle_map
 from utils.utils import AverageMeter
 
+from utils.image import size2level, levelnum
+
 import random as r
 
 def set_bn_eval(m):
@@ -203,11 +205,15 @@ class CtdetLoss(torch.nn.Module):
 
           cv2.imwrite("./results/center.jpg", (batch['hm'].detach().cpu().numpy()[0,0,:,:]*255).astype(np.uint8))
 
-          allmask = output['allmask'][0,0:9,:,:].detach().cpu().numpy().transpose(1,2,0)
+          allmask = output['allmask'][0,0:self.opt.num_maskclasses+levelnum,:,:].detach().cpu().numpy().transpose(1,2,0)
+
+          assert(self.opt.num_maskclasses == 9)
 
           cv2.imwrite("./results/output_top.jpg", (allmask[:,:,0:3]*255).astype(np.uint8))
           cv2.imwrite("./results/output_middle.jpg", (allmask[:,:,3:6]*255).astype(np.uint8))
           cv2.imwrite("./results/output_bottom.jpg", (allmask[:,:,6:9]*255).astype(np.uint8))
+          cv2.imwrite("./results/output_large.jpg", (allmask[:,:,9:12]*255).astype(np.uint8))
+          cv2.imwrite("./results/output_small.jpg", (allmask[:,:,12:15]*255).astype(np.uint8))
 
       hm_loss += self.crit(output['hm'], (batch['hm']>0.30).float()) / opt.num_stacks
 
@@ -230,13 +236,9 @@ class CtdetLoss(torch.nn.Module):
       if opt.reg_offset and opt.off_weight > 0:
         off_loss += self.crit_reg(output['reg'], batch['reg_mask'],
                              batch['ind'], batch['reg']) / opt.num_stacks
-      '''
-      for i in range(0, output['allmask'].size()[1], 9):
-          allmask_loss += self.crit_allmask(output['allmask'][:,i:i+9,:,:], batch['allmask'][:,i:i+9,:,:]) / opt.num_stacks
-      '''
+
       for i in range(0, output['allmask'].size()[1]):
           allmask_loss += self.crit_allmask(output['allmask'][:,i,:,:], batch['allmask'][:,i,:,:]) / opt.num_stacks
-      #allmask_loss += self.crit_allmask(output['allmask'], batch['allmask']) / opt.num_stacks
 
     loss = opt.hm_weight * hm_loss + opt.wh_weight * wh_loss + opt.off_weight * off_loss + opt.allmask_weight*allmask_loss
     loss_stats = {'loss': loss, 'hm_loss': hm_loss, 'wh_loss': wh_loss, 'off_loss': off_loss, 'allmask_loss': allmask_loss}

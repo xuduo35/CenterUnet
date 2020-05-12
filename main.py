@@ -13,6 +13,7 @@ from config import Config
 from dataset.coco import COCO
 from models.network import create_model, load_model, save_model
 from trainer import CtdetTrainer
+from utils.image import size2level, levelnum
 
 def get_args():
     # Training settings
@@ -107,7 +108,7 @@ def main():
   dataset = COCO('train', cfg)
 
   if args.convert_model:
-      model = create_model(cfg.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses*9}, cfg.num_stacks, encoder_weights=None)
+      model = create_model(cfg.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses+levelnum}, cfg.num_stacks, encoder_weights=None)
       model, optimizer, start_epoch = load_model(model, cfg.load_model, True, resume=True)
       save_model(cfg.load_model.replace(".pth", "_"+cfg.network_type+".pth"), start_epoch, model)
       sys.exit(0)
@@ -118,7 +119,7 @@ def main():
 
   print('Creating model...')
 
-  model = create_model(args.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses*9}, nstack)
+  model = create_model(args.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses+levelnum}, nstack)
 
   if args.network_type != 'large_hourglass':
     if args.train_phase == 'pre_train_center':

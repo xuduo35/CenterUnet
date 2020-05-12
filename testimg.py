@@ -18,6 +18,7 @@ from dataset.coco import COCO
 from models.network import create_model, load_model, save_model
 from detector import CtdetDetector as Detector
 from utils.debugger import colors
+from utils.image import size2level, levelnum
 
 COCO_NAMES = ['__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
               'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant',
@@ -70,6 +71,8 @@ def get_args():
 
     parser.add_argument('--output_dir', default='./results', help='output dir')
     parser.add_argument('--center_thresh', type=float, default=0.1, help='center threshold')
+    parser.add_argument('--sizethr', type=float, default=0., help='size threshold')
+    parser.add_argument('--instance', type=int, default=0, help='instance number')
 
     args = parser.parse_args()
     print(args)
@@ -183,6 +186,12 @@ def test():
         x2 = int(box[2]*scale)
         y2 = int(box[3]*scale)
 
+        if x2 <= x1 or (x1 < 0 and x2 < 0):
+            continue
+
+        if y2 <= y1 or (y1 < 0 and y2 < 0):
+            continue
+
         x1 = 0 if x1 < 0 else x1
         y1 = 0 if y1 < 0 else y1
         x2 = w - 1 if x2 >= w else x2
@@ -231,6 +240,12 @@ def test():
         rgb = colors[i,0,0].tolist()
         i += 1
 
+        if args.instance != 0 and args.instance != i:
+            continue
+
+        l = size2level(w*h, roi_w*roi_h)
+        roi = roi*((allmaskroi[:,:,cfg.num_maskclasses+l]+allmaskroi[:,:,cfg.num_maskclasses+l+1])/2.0>args.sizethr)
+
         allmaskjpg[:,:,0][y1:y2,x1:x2] += roi*rgb[0]
         allmaskjpg[:,:,1][y1:y2,x1:x2] += roi*rgb[1]
         allmaskjpg[:,:,2][y1:y2,x1:x2] += roi*rgb[2]
@@ -239,14 +254,18 @@ def test():
         cat = COCO._valid_ids[key-1]
         cat = COCO.all_valid_ids.index(cat)+1
 
-        print(x1, y1, x2, y2, COCO_NAMES[cat], box[4])
+        print(x1, y1, x2, y2, COCO_NAMES[cat], box[4], "level", l)
 
         cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cv2.putText(img, COCO_NAMES[cat], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (cat*2, 255, 255-cat), 2)
 
+  assert(cfg.num_maskclasses == 9)
+
   cv2.imwrite(os.path.join(args.output_dir, "centernet.jpg"), img)
-  cv2.imwrite("./results/pred_rawmask.jpg", (np.amax(allmask, axis=2)>thr).astype(np.uint8)*255)
+  cv2.imwrite("./results/pred_rawmask.jpg", (np.amax(allmask[:,:,0:9], axis=2)>thr).astype(np.uint8)*255)
   cv2.imwrite("./results/pred_allmask.png", allmaskjpg)
+  cv2.imwrite("./results/pred_large.png", (allmask[:,:,9:12]*255).astype(np.uint8))
+  cv2.imwrite("./results/pred_small.png", (allmask[:,:,12:15]*255).astype(np.uint8))
 
 if __name__ == '__main__':
   test()

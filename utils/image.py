@@ -267,3 +267,16 @@ def color_aug(data_rng, image, eig_val, eig_vec):
     for f in functions:
         f(data_rng, image, gs, gs_mean, 0.4)
     lighting_(data_rng, image, 0.1, eig_val, eig_vec)
+
+levels = [1/2.0, 1/4.0, 1/8.0, 1/16.0, 1/32.0, 1/64.0, ]
+levelnum = len(levels) + 1
+
+def size2level(total, size):
+    factor = size/total
+
+    for i in range(0, len(levels)):
+        if factor > levels[i]:
+            break
+
+    return i
+
