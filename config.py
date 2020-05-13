@@ -5,7 +5,7 @@ class Config():
     self,
     gpus, device,
     network_type, backbone,
-    down_ratio, num_stacks=2, load_model='', train_phase='end_to_end'
+    batch_size, down_ratio, num_stacks=2, load_model='', train_phase='end_to_end'
     ):
     self.train_phase = train_phase
 
@@ -25,9 +25,9 @@ class Config():
 
     self.pad = 32
 
-    self.input_h = 256
-    self.input_w = 256
-    self.input_res = 256
+    self.input_h = 384
+    self.input_w = 384
+    self.input_res = 384
 
     self.not_rand_crop = False
     self.scale = 0.4
@@ -35,6 +35,7 @@ class Config():
     self.flip = 0.5
     self.no_color_aug = False
 
+    self.batch_size = batch_size
     self.down_ratio = down_ratio
 
     self.mse_loss = False
@@ -45,6 +46,8 @@ class Config():
 
     self.cat_spec_wh = False
     self.reg_offset = True
+
+    self.sizeaug = True
 
     self.test = False
     self.debug = 1

@@ -76,7 +76,9 @@ https://github.com/yxlijun/Pelee.Pytorch
 
 ![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet1.jpg?raw=true)
 
-![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet2.png?raw=true)
+![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet2.jpg?raw=true)
+
+![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet3.jpg?raw=true)
 
 ## License
 

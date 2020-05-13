@@ -101,6 +101,18 @@ class COCO(data.Dataset):
     self.split = split
     self.opt = opt
 
+    self.patch_sizes = [opt.input_w]
+
+    sizes = [128, 192, 256, 320, 384, 448, 512, 640, 768, 896, 1024, 1280, 1536, 2048]
+
+    for i, size in enumerate(sizes[1:]):
+         if opt.input_w < sizes[i-1]:
+             break
+
+         self.patch_sizes.append(size)
+
+    self.getcount = 0
+
     print('==> initializing coco 2017 {} data.'.format(split))
     self.coco = coco.COCO(self.annot_path)
     self.images = self.coco.getImgIds()
@@ -145,6 +157,12 @@ class COCO(data.Dataset):
     else:
       s = max(img.shape[0], img.shape[1]) * 1.0
       input_h, input_w = self.opt.input_h, self.opt.input_w
+
+      if self.split == 'train':
+          input_w = self.patch_sizes[(self.getcount//self.opt.batch_size) % len(self.patch_sizes)]
+          input_h = input_w
+
+          self.getcount = 0 if self.getcount == self.num_samples else self.getcount + 1
 
     flipped = False
 

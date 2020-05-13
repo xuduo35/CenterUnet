@@ -110,13 +110,13 @@ def test():
   cfg = Config(
           args.gpus, device,
           args.network_type, args.backbone,
-          down_ratio, nstack
+          1, down_ratio, nstack
           )
 
-  if False:
-    cfg.input_h = 384
-    cfg.input_w = 384
-    cfg.input_res = 384
+  if True:
+    cfg.input_h = 512
+    cfg.input_w = 512
+    cfg.input_res = 512
 
   cfg.load_model = args.load_model
   cfg.nms = args.nms

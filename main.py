@@ -34,8 +34,6 @@ def get_args():
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate for batch size 32.')
     parser.add_argument('--lr_step', type=str, default='90,120', help='drop learning rate by 10.')
 
-    parser.add_argument('--sizeaug', action='store_true', default=False, help='size augmentation')
-
     parser.add_argument('--gpus', default='0', help='-1 for CPU, use comma for multiple gpus')
     parser.add_argument('--seed', type=int, default=326, help='random seed')
 
@@ -82,7 +80,7 @@ def main():
   cfg = Config(
           args.gpus, device,
           args.network_type, args.backbone,
-          down_ratio, nstack, train_phase=args.train_phase
+          args.batch_size, down_ratio, nstack, train_phase=args.train_phase
           )
 
   if args.network_type != 'large_hourglass':
@@ -108,7 +106,7 @@ def main():
   dataset = COCO('train', cfg)
 
   if args.convert_model:
-      model = create_model(cfg.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses+levelnum}, cfg.num_stacks, encoder_weights=None)
+      model = create_model(cfg.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': cfg.num_maskclasses+levelnum}, cfg.num_stacks, encoder_weights=None)
       model, optimizer, start_epoch = load_model(model, cfg.load_model, True, resume=True)
       save_model(cfg.load_model.replace(".pth", "_"+cfg.network_type+".pth"), start_epoch, model)
       sys.exit(0)
@@ -119,7 +117,7 @@ def main():
 
   print('Creating model...')
 
-  model = create_model(args.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': dataset.num_maskclasses+levelnum}, nstack)
+  model = create_model(args.network_type, args.backbone, {'hm': dataset.num_classes, 'wh': 2, 'reg': 2, 'allmask': cfg.num_maskclasses+levelnum}, nstack)
 
   if args.network_type != 'large_hourglass':
     if args.train_phase == 'pre_train_center':
