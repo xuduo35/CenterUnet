@@ -73,7 +73,7 @@ https://github.com/qubvel/segmentation_models.pytorch
 https://github.com/yxlijun/Pelee.Pytorch
 </pre>
 
-![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet1.png?raw=true)
+![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet1.jpg?raw=true)
 
 ![avatar](https://github.com/xuduo35/CenterUnet/blob/master/samples/centernet2.png?raw=true)
 
