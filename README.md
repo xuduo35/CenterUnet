@@ -34,7 +34,7 @@ python3 -m pip install matplotlib
 python3 -m pip install progress
 python3 -m pip install numba
 cd external; make
-cd models/py_utils/_cpools/ python setup.py install --user
+cd models/py_utils/_cpools/; python3 setup.py install --user
 </pre>
 
 ## Prepare data

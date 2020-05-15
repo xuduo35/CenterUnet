@@ -105,8 +105,8 @@ class COCO(data.Dataset):
 
     sizes = [128, 192, 256, 320, 384, 448, 512, 640, 768, 896, 1024, 1280, 1536, 2048]
 
-    for i, size in enumerate(sizes[1:]):
-         if opt.input_w < sizes[i-1]:
+    for i, size in enumerate(sizes[2:]):
+         if opt.input_w < sizes[i-2]:
              break
 
          self.patch_sizes.append(size)
