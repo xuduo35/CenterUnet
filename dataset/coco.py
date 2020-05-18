@@ -135,7 +135,7 @@ class COCO(data.Dataset):
     return border // i
 
   def assignroi(self, pagenum, dst, src, x1, y1, x2, y2):
-    dst[y1:y2, x1:x2, pagenum] = src[y1:y2, x1:x2]
+    dst[y1:y2, x1:x2, pagenum] += src[y1:y2, x1:x2]
 
   def __getitem__(self, index):
     img_id = self.images[index]
