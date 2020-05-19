@@ -141,9 +141,12 @@ class UnetObj(nn.Module):
 
         ## keypoint heatmaps
         for head in heads.keys():
+            if 'hm' in head:
+                continue
+
             self.heads[head] = heads[head]
 
-        self.c_net = get_basenet(self.basenet, backbone, encoder_weights, 0, decoder_channels)
+        self.c_net = get_basenet(self.basenet, backbone, encoder_weights, num_classes, decoder_channels)
         self.b_net = boxDecoder(
             self.basenet, self.heads, nstack, 256, self.c_net.encoder.out_channels, decoder_channels, 3+num_classes
             )
@@ -173,17 +176,13 @@ class UnetObj(nn.Module):
         # raw result
         c_net_output = self.c_net(input)
 
-        hm = self.b_net.__getattr__('hm')[0]
-        #allmask = self.b_net.__getattr__('allmask')[0]
-
         # concat
-        csigmoid = F.sigmoid(hm(c_net_output))
+        csigmoid = F.sigmoid(c_net_output)
         csigmoidx2 = F.interpolate(csigmoid, (input.size()[2], input.size()[3]), mode='bilinear')
         b_net_input = torch.cat((input, csigmoidx2), 1)
 
         out = {
-            'hm': csigmoid,
-            #'allmask': F.sigmoid(allmask(c_net_output))
+            'hm': csigmoid
             }
 
         # second stage

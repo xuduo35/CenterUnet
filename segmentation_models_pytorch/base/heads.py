@@ -77,7 +77,7 @@ class SegmentationHead(nn.Sequential):
     def __init__(self, in_channels, out_channels, kernel_size=3, activation=None, upsampling=1):
         head = nn.Sequential(
                 make_ct_layer(in_channels),
-                make_layer(in_channels, 256, out_channels)
+                make_layer(in_channels, 160, out_channels)
                 )
         super().__init__(head)
 
