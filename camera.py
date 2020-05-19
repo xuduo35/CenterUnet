@@ -85,7 +85,7 @@ def cleanmask(m0, m1, m2, m3):
     return (m0 * ((m0-m1)>0.))
 
 def assignroi(pagenum, dst, src, x1, y1, x2, y2):
-  dst[y1:y2+1, x1:x2+1] += src[y1:y2+1, x1:x2+1, pagenum]
+  dst[y1:y2, x1:x2] += src[y1:y2, x1:x2, pagenum]
 
 def test():
   args = get_args()
