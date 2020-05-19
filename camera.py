@@ -85,7 +85,7 @@ def cleanmask(m0, m1, m2, m3):
     return (m0 * ((m0-m1)>0.))
 
 def assignroi(pagenum, dst, src, x1, y1, x2, y2):
-  dst[y1:y2, x1:x2] += src[y1:y2, x1:x2, pagenum]
+  dst[y1:y2+1, x1:x2+1] += src[y1:y2+1, x1:x2+1, pagenum]
 
 def test():
   args = get_args()
@@ -214,17 +214,17 @@ def test():
           # TOP
           assignroi(0, roi, allmaskroi, 0,             0,             roi_cx-cell_w, roi_cy-cell_h)
           assignroi(1, roi, allmaskroi, roi_cx-cell_w, 0,             roi_cx+cell_w, roi_cy-cell_h)
-          assignroi(2, roi, allmaskroi, roi_cx+cell_w, 0,             -1,            roi_cy-cell_h)
+          assignroi(2, roi, allmaskroi, roi_cx+cell_w, 0,             roi_w,         roi_cy-cell_h)
 
           # MIDDLE
           assignroi(3, roi, allmaskroi, 0,             roi_cy-cell_h, roi_cx-cell_w, roi_cy+cell_h)
           assignroi(4, roi, allmaskroi, roi_cx-cell_w, roi_cy-cell_h, roi_cx+cell_w, roi_cy+cell_h)
-          assignroi(5, roi, allmaskroi, roi_cx+cell_w, roi_cy-cell_h, -1,            roi_cy+cell_h)
+          assignroi(5, roi, allmaskroi, roi_cx+cell_w, roi_cy-cell_h, roi_w,         roi_cy+cell_h)
 
           # BOTTOM
-          assignroi(6, roi, allmaskroi, 0,             roi_cy+cell_h, roi_cx-cell_w, -1)
-          assignroi(7, roi, allmaskroi, roi_cx-cell_w, roi_cy+cell_h, roi_cx+cell_w, -1)
-          assignroi(8, roi, allmaskroi, roi_cx+cell_w, roi_cy+cell_h, -1,            -1)
+          assignroi(6, roi, allmaskroi, 0,             roi_cy+cell_h, roi_cx-cell_w, roi_h        )
+          assignroi(7, roi, allmaskroi, roi_cx-cell_w, roi_cy+cell_h, roi_cx+cell_w, roi_h        )
+          assignroi(8, roi, allmaskroi, roi_cx+cell_w, roi_cy+cell_h, roi_w,         roi_h        )
 
           # roi = np.amax(allmaskroi[:,:,:], axis=2)
           roi = (roi > thr).astype(np.uint8)

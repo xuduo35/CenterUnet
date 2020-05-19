@@ -135,7 +135,7 @@ class COCO(data.Dataset):
     return border // i
 
   def assignroi(self, pagenum, dst, src, x1, y1, x2, y2):
-    dst[y1:y2, x1:x2, pagenum] += src[y1:y2, x1:x2]
+    dst[y1:y2+1, x1:x2+1, pagenum] += src[y1:y2+1, x1:x2+1]
 
   def __getitem__(self, index):
     img_id = self.images[index]
@@ -274,23 +274,23 @@ class COCO(data.Dataset):
 
         allmaskroi = allmask[y1:y2, x1:x2, :]
 
-        ww = max(6,cell_w//4)
-        hh = max(6,cell_h//4)
+        ww = max(3,cell_w//4)
+        hh = max(3,cell_h//4)
 
         # TOP
         self.assignroi(0, allmaskroi, roi, 0,                0,                roi_cx-cell_w+ww, roi_cy-cell_h+hh)
         self.assignroi(1, allmaskroi, roi, roi_cx-cell_w-ww, 0,                roi_cx+cell_w+ww, roi_cy-cell_h+hh)
-        self.assignroi(2, allmaskroi, roi, roi_cx+cell_w-ww, 0,                -1,               roi_cy-cell_h+hh)
+        self.assignroi(2, allmaskroi, roi, roi_cx+cell_w-ww, 0,                roi_w,            roi_cy-cell_h+hh)
 
         # MIDDLE
         self.assignroi(3, allmaskroi, roi, 0,                roi_cy-cell_h-hh, roi_cx-cell_w+ww, roi_cy+cell_h+hh)
         self.assignroi(4, allmaskroi, roi, roi_cx-cell_w-ww, roi_cy-cell_h-hh, roi_cx+cell_w+ww, roi_cy+cell_h+hh)
-        self.assignroi(5, allmaskroi, roi, roi_cx+cell_w-ww, roi_cy-cell_h-hh, -1,               roi_cy+cell_h+hh)
+        self.assignroi(5, allmaskroi, roi, roi_cx+cell_w-ww, roi_cy-cell_h-hh, roi_w,            roi_cy+cell_h+hh)
 
         # BOTTOM
-        self.assignroi(6, allmaskroi, roi, 0,                roi_cy+cell_h-hh, roi_cx-cell_w+ww, -1              )
-        self.assignroi(7, allmaskroi, roi, roi_cx-cell_w-ww, roi_cy+cell_h-hh, roi_cx+cell_w+ww, -1              )
-        self.assignroi(8, allmaskroi, roi, roi_cx+cell_w-ww, roi_cy+cell_h-hh, -1,               -1              )
+        self.assignroi(6, allmaskroi, roi, 0,                roi_cy+cell_h-hh, roi_cx-cell_w+ww, roi_h           )
+        self.assignroi(7, allmaskroi, roi, roi_cx-cell_w-ww, roi_cy+cell_h-hh, roi_cx+cell_w+ww, roi_h           )
+        self.assignroi(8, allmaskroi, roi, roi_cx+cell_w-ww, roi_cy+cell_h-hh, roi_w,            roi_h           )
         ### gen mask end ###
 
         radius = gaussian_radius((math.ceil(h), math.ceil(w)))
