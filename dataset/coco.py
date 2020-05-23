@@ -135,7 +135,7 @@ class COCO(data.Dataset):
     return border // i
 
   def assignroi(self, pagenum, dst, src, x1, y1, x2, y2):
-    dst[y1:y2, x1:x2, pagenum] += src[y1:y2, x1:x2]
+    dst[y1:y2, x1:x2, pagenum] = np.bitwise_or(dst[y1:y2, x1:x2, pagenum], src[y1:y2, x1:x2])
 
   def __getitem__(self, index):
     img_id = self.images[index]
@@ -220,7 +220,7 @@ class COCO(data.Dataset):
 
     gt_det = []
 
-    allmask = np.zeros((output_h, output_w, self.opt.num_maskclasses+levelnum), dtype=np.float32)
+    allmask = np.zeros((output_h, output_w, self.opt.num_maskclasses+levelnum), dtype=np.uint8)
 
     for k in range(num_objs):
       ann = anns[k]
@@ -264,8 +264,8 @@ class COCO(data.Dataset):
           continue
 
         l = size2level(output_w*output_h, roi_w*roi_h)
-        allmask[:,:,self.opt.num_maskclasses+l] += mask
-        allmask[:,:,self.opt.num_maskclasses+l+1] += mask
+        allmask[:,:,self.opt.num_maskclasses+l] = np.bitwise_or(allmask[:,:,self.opt.num_maskclasses+l], mask)
+        allmask[:,:,self.opt.num_maskclasses+l+1] = np.bitwise_or(allmask[:,:,self.opt.num_maskclasses+l+1], mask)
 
         roi_cx = roi_w//2
         roi_cy = roi_h//2
@@ -333,7 +333,7 @@ class COCO(data.Dataset):
 
     ret = {
       'input': inp, 'hm': hm, 'reg_mask': reg_mask, 'ind': ind, 'wh': wh,
-      'allmask': allmask.transpose(2, 0, 1)
+      'allmask': allmask.astype(np.float32).transpose(2, 0, 1)
     }
 
     if self.opt.dense_wh:
