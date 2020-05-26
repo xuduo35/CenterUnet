@@ -120,6 +120,42 @@ class COCO(data.Dataset):
 
     print('Loaded {} {} samples'.format(split, self.num_samples))
 
+    images = []
+
+    for i in range(0, self.num_samples):
+        img_id = self.images[i]
+        ann_ids = self.coco.getAnnIds(imgIds=[img_id])
+        anns = self.coco.loadAnns(ids=ann_ids)
+        num_objs = min(len(anns), 128)
+
+        objflag = False
+
+        for j in range(0, num_objs):
+            ann = anns[j]
+            bbox = self._coco_box_to_bbox(ann['bbox'])
+
+            if ann['category_id'] not in self._valid_ids:
+              continue
+
+            x1 = int(bbox[0])
+            y1 = int(bbox[1])
+            x2 = int(bbox[2])
+            y2 = int(bbox[3])
+
+            h, w = bbox[3] - bbox[1], bbox[2] - bbox[0]
+
+            if h*w >= 50*50:
+              objflag = True
+              break
+
+        if objflag:
+          images.append(img_id)
+
+    self.images = images
+    self.num_samples = len(self.images)
+
+    print('Loaded {} {} samples'.format(split, self.num_samples))
+
   def __len__(self):
     return self.num_samples
 
@@ -274,8 +310,8 @@ class COCO(data.Dataset):
 
         allmaskroi = allmask[y1:y2, x1:x2, :]
 
-        ww = max(3,cell_w//4)
-        hh = max(3,cell_h//4)
+        ww = max(6,cell_w//4)
+        hh = max(6,cell_h//4)
 
         # TOP
         self.assignroi(0, allmaskroi, roi, 0,                0,                roi_cx-cell_w+ww, roi_cy-cell_h+hh)
