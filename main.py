@@ -170,7 +170,7 @@ def main():
     return
 
   train_loader = torch.utils.data.DataLoader(
-      COCO('train', cfg),
+      dataset,
       batch_size=args.batch_size,
       shuffle=True,
       num_workers=args.num_workers,
